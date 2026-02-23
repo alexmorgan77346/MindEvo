@@ -1,4 +1,4 @@
-const CACHE = 'mindevo-v2';
+const CACHE = 'mindevo-v3';
 const ASSETS = [
   './',
   './index.html',
