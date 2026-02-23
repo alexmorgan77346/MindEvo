@@ -1,4 +1,4 @@
-const CACHE = 'mindevo-v5';
+const CACHE = 'mindevo-v6';
 
 const ASSETS = [
   './',
