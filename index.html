@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mind Evolution</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+/* Full-screen app shell */
+html, body { height:100%; overflow:hidden; background:#07070f; color:#e8eaf2; font-family:'Inter',sans-serif; }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:#0078ff; border-radius:3px; }
+
+/* NAV */
+#nav {
+  position:fixed; top:0; left:0; right:0; height:54px; z-index:100;
+  background:rgba(7,7,15,.97); border-bottom:1px solid rgba(0,120,255,.14);
+  backdrop-filter:blur(16px);
+  display:flex; align-items:center; padding:0 14px; gap:2px;
+}
+.logo { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; margin-right:14px; white-space:nowrap; flex-shrink:0; }
+.logo b { color:#0078ff; }
+.tab {
+  padding:7px 12px; border-radius:8px; border:1px solid transparent;
+  background:none; color:rgba(232,234,242,.42);
+  font-family:'Inter',sans-serif; font-size:13px; font-weight:500;
+  cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all .15s;
+}
+.tab:hover { color:#e8eaf2; background:rgba(255,255,255,.05); }
+.tab.on { color:#e8eaf2; background:rgba(0,120,255,.15); border-color:rgba(0,120,255,.28); }
+.nav-r { margin-left:auto; display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.chip { font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; border:1px solid; white-space:nowrap; }
+.cf { color:#ff9500; border-color:rgba(255,149,0,.3); background:rgba(255,149,0,.08); }
+.cx { color:#00c2ff; border-color:rgba(0,194,255,.3); background:rgba(0,194,255,.08); }
+
+/* PAGE CONTAINER */
+#app {
+  position:fixed; top:54px; left:0; right:0; bottom:0;
+  overflow:hidden;
+}
+
+/* PAGES */
+.page {
+  display:none;
+  position:absolute; inset:0;
+  overflow-y:auto; overflow-x:hidden;
+  padding:20px 18px 60px;
+  -webkit-overflow-scrolling:touch;
+}
+.page.on { display:block; }
+
+/* ─── TASKS ─── */
+.prog-wrap { background:rgba(255,255,255,.04); border:1px solid rgba(0,120,255,.12); border-radius:12px; padding:14px 18px; margin-bottom:18px; }
+.prog-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+.prog-lbl { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; }
+.prog-val { font-size:13px; font-weight:600; color:#00c2ff; }
+.prog-track { height:5px; background:rgba(255,255,255,.06); border-radius:10px; overflow:hidden; }
+.prog-fill { height:100%; background:linear-gradient(90deg,#0078ff,#00c2ff); border-radius:10px; transition:width .35s; width:0%; }
+
+.grp { margin-bottom:18px; }
+.grp-lbl { font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#00c2ff; margin-bottom:9px; padding-left:2px; }
+.task {
+  display:flex; align-items:center; gap:13px;
+  padding:13px 15px; margin-bottom:5px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+  border-radius:10px; cursor:pointer; user-select:none; transition:all .15s;
+}
+.task:hover { background:rgba(0,120,255,.07); border-color:rgba(0,120,255,.22); }
+.task.done { opacity:.4; }
+.task.done .tn { text-decoration:line-through; }
+.chk {
+  width:19px; height:19px; border-radius:6px; flex-shrink:0;
+  border:1.5px solid rgba(0,120,255,.4);
+  display:flex; align-items:center; justify-content:center;
+}
+.task.done .chk { background:#0078ff; border-color:#0078ff; }
+.tick { display:none; color:#fff; font-size:11px; font-weight:700; }
+.task.done .tick { display:block; }
+.tn { flex:1; font-size:14px; color:rgba(232,234,242,.85); }
+.txp { font-size:11px; font-weight:600; color:#00c2ff; }
+.rst { display:block; margin:6px auto 0; background:none; border:none; color:rgba(232,234,242,.25); font-size:13px; cursor:pointer; padding:8px 16px; font-family:'Inter',sans-serif; }
+.rst:hover { color:rgba(232,234,242,.55); }
+
+/* ─── TIMER ─── */
+#pg-timer { display:none; flex-direction:column; align-items:center; padding-top:26px; }
+#pg-timer.on { display:flex; }
+.ring-box { position:relative; width:210px; height:210px; margin-bottom:22px; flex-shrink:0; }
+.ring-svg { width:210px; height:210px; transform:rotate(-90deg); display:block; }
+.ring-bg { fill:none; stroke:rgba(255,255,255,.06); stroke-width:10; }
+.ring-p { fill:none; stroke:#0078ff; stroke-width:10; stroke-linecap:round; stroke-dasharray:541; stroke-dashoffset:541; transition:stroke-dashoffset 1s linear, stroke .3s; }
+.t-in { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.t-num { font-family:'Syne',sans-serif; font-size:46px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+.t-lbl { font-size:11px; color:rgba(232,234,242,.38); margin-top:5px; text-transform:uppercase; letter-spacing:.1em; }
+.presets { display:flex; gap:7px; margin-bottom:20px; flex-shrink:0; }
+.pset { padding:8px 16px; border-radius:8px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); color:rgba(232,234,242,.5); font-size:13px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif; }
+.pset.on { color:#e8eaf2; background:rgba(0,120,255,.12); border-color:rgba(0,120,255,.35); }
+.t-btns { display:flex; gap:10px; align-items:center; margin-bottom:26px; flex-shrink:0; }
+.btn-r { width:50px; height:50px; border-radius:50%; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:#e8eaf2; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.btn-play { width:62px; height:62px; border-radius:50%; background:#0078ff; border:none; color:#fff; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 24px rgba(0,120,255,.4); }
+.fstats { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; width:100%; max-width:360px; flex-shrink:0; }
+.fs { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:13px; text-align:center; }
+.fs-v { font-family:'Syne',sans-serif; font-size:21px; font-weight:800; color:#00c2ff; }
+.fs-l { font-size:10px; color:rgba(232,234,242,.38); margin-top:3px; text-transform:uppercase; letter-spacing:.08em; }
+
+/* ─── TRACKER ─── */
+.tgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:18px; }
+.tc { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:18px; position:relative; overflow:hidden; }
+.tc::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#0078ff,#00c2ff); opacity:.45; }
+.tc-l { font-size:10px; color:rgba(232,234,242,.38); text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }
+.tc-v { font-family:'Syne',sans-serif; font-size:34px; font-weight:800; line-height:1; }
+.tc-s { font-size:11px; color:rgba(232,234,242,.3); margin-top:4px; }
+.sec-t { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; color:rgba(232,234,242,.4); text-transform:uppercase; letter-spacing:.1em; margin:18px 0 11px; }
+.wk-row { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.wd { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:8px; padding:10px 4px; text-align:center; }
+.wd.today { border-color:rgba(0,120,255,.4); background:rgba(0,120,255,.07); }
+.wd-n { font-size:9px; color:rgba(232,234,242,.32); text-transform:uppercase; margin-bottom:6px; }
+.wd-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.08); margin:0 auto; }
+.wd-dot.hit { background:#0078ff; box-shadow:0 0 5px rgba(0,120,255,.5); }
+.wd-dot.great { background:#00e676; box-shadow:0 0 5px rgba(0,230,118,.5); }
+
+/* ─── PRINCIPLES ─── */
+.p-card {
+  display:flex; align-items:center; gap:14px;
+  padding:16px 18px; margin-bottom:9px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+  border-radius:12px; cursor:pointer; transition:all .15s;
+}
+.p-card:hover { background:rgba(0,120,255,.07); border-color:rgba(0,120,255,.3); transform:translateX(3px); }
+.p-ico { font-size:22px; flex-shrink:0; }
+.p-info { flex:1; }
+.p-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:3px; }
+.p-meta { font-size:12px; color:rgba(232,234,242,.38); }
+.p-arr { font-size:20px; color:rgba(232,234,242,.22); }
+.p-card:hover .p-arr { color:#00c2ff; }
+
+/* ─── READER ─── */
+#reader {
+  display:none;
+  position:fixed; inset:0; z-index:200;
+  background:#07070f; flex-direction:column;
+}
+#reader.open { display:flex; }
+.r-bar {
+  height:54px; display:flex; align-items:center; padding:0 16px; gap:12px;
+  border-bottom:1px solid rgba(0,120,255,.12); flex-shrink:0;
+  background:rgba(7,7,15,.98);
+}
+.r-back { background:none; border:1px solid rgba(255,255,255,.1); border-radius:8px; color:rgba(232,234,242,.6); padding:6px 14px; font-size:13px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif; flex-shrink:0; }
+.r-back:hover { color:#e8eaf2; border-color:rgba(0,120,255,.35); }
+.r-bar-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.r-bar-count { font-size:12px; color:rgba(232,234,242,.32); flex-shrink:0; }
+.r-dots { display:flex; justify-content:center; gap:5px; padding:10px 16px; flex-shrink:0; flex-wrap:wrap; }
+.rdot { height:7px; width:7px; border-radius:4px; background:rgba(255,255,255,.14); cursor:pointer; transition:all .25s; flex-shrink:0; }
+.rdot.on { background:#0078ff; width:18px; }
+.r-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.r-content { padding:20px 20px 120px; max-width:680px; margin:0 auto; }
+.r-foot {
+  position:absolute; bottom:0; left:0; right:0;
+  background:rgba(7,7,15,.98); border-top:1px solid rgba(0,120,255,.1);
+  padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-shrink:0;
+}
+.r-btn { padding:11px 22px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; }
+.r-prev { background:rgba(255,255,255,.05); color:rgba(232,234,242,.55); border:1px solid rgba(255,255,255,.1) !important; }
+.r-next { background:#0078ff; color:#fff; }
+.r-pg-lbl { font-size:12px; color:rgba(232,234,242,.3); text-align:center; }
+
+/* ─── READER CONTENT ─── */
+.r-tag { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#00c2ff; margin-bottom:10px; }
+.r-title { font-family:'Syne',sans-serif; font-size:23px; font-weight:800; line-height:1.2; margin-bottom:18px; }
+.r-title span { color:#00c2ff; }
+.r-text { font-size:15px; line-height:1.8; color:rgba(232,234,242,.72); margin-bottom:14px; }
+.r-text strong { color:#e8eaf2; font-weight:600; }
+.r-text em { color:#00c2ff; font-style:normal; }
+.r-quote { border-left:3px solid #0078ff; padding:13px 16px; margin:18px 0; background:rgba(0,120,255,.07); border-radius:0 10px 10px 0; font-size:15px; font-style:italic; color:rgba(232,234,242,.82); line-height:1.65; }
+.r-quote span { color:#00c2ff; font-style:normal; font-weight:600; }
+.r-box { background:rgba(0,194,255,.07); border:1px solid rgba(0,194,255,.18); border-radius:10px; padding:15px 17px; margin:16px 0; }
+.r-box-t { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; color:#00c2ff; text-transform:uppercase; letter-spacing:.1em; margin-bottom:9px; }
+.r-box p { font-size:14px; color:rgba(232,234,242,.68); line-height:1.75; }
+.r-list { list-style:none; margin:14px 0; }
+.r-list li { display:flex; gap:11px; align-items:flex-start; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:14px; color:rgba(232,234,242,.68); line-height:1.65; }
+.r-list li:last-child { border-bottom:none; }
+.r-list li::before { content:'→'; color:#0078ff; flex-shrink:0; font-weight:700; margin-top:2px; }
+.r-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin:16px 0; }
+.r-stat { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:14px; text-align:center; }
+.r-stat-v { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:#00c2ff; line-height:1; }
+.r-stat-l { font-size:11px; color:rgba(232,234,242,.38); margin-top:4px; line-height:1.4; }
+.r-warn { background:rgba(255,149,0,.07); border:1px solid rgba(255,149,0,.2); border-radius:10px; padding:14px 16px; margin:16px 0; font-size:14px; color:rgba(232,234,242,.7); line-height:1.7; }
+.r-warn b { color:#ff9500; }
+.r-hl { background:rgba(0,120,255,.08); border-radius:8px; padding:12px 15px; margin:14px 0; font-size:14px; color:rgba(232,234,242,.7); line-height:1.7; border-left:3px solid #0078ff; }
+.r-hl b { color:#e8eaf2; }
+.r-proto { background:linear-gradient(135deg,rgba(0,120,255,.1),rgba(0,194,255,.05)); border:1px solid rgba(0,120,255,.22); border-radius:12px; padding:16px 18px; margin:14px 0; }
+.r-proto-t { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; color:#00c2ff; text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px; }
+.r-proto p { font-size:14px; color:rgba(232,234,242,.72); line-height:1.75; }
+
+/* ─── TOAST ─── */
+#tw { position:fixed; top:62px; right:14px; z-index:999; pointer-events:none; }
+.toast { background:rgba(12,12,22,.97); border:1px solid rgba(0,120,255,.28); border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; color:#00c2ff; margin-bottom:6px; opacity:0; transform:translateX(10px); transition:all .2s; }
+.toast.show { opacity:1; transform:translateX(0); }
+
+@media(max-width:480px) {
+  .tab { padding:7px 9px; font-size:12px; }
+  .chip { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="logo">MIND<b>EVO</b></div>
+  <button class="tab on"  onclick="goTab('tasks',this)">Tasks</button>
+  <button class="tab"     onclick="goTab('timer',this)">Timer</button>
+  <button class="tab"     onclick="goTab('tracker',this)">Tracker</button>
+  <button class="tab"     onclick="goTab('principles',this)">Principles</button>
+  <div class="nav-r">
+    <div class="chip cf">🔥<span id="el-streak">0</span>d</div>
+    <div class="chip cx">⚡<span id="el-xp">0</span></div>
+  </div>
+</nav>
+
+<!-- APP CONTAINER -->
+<div id="app">
+
+  <!-- TASKS -->
+  <div class="page on" id="pg-tasks">
+    <div class="prog-wrap">
+      <div class="prog-top">
+        <span class="prog-lbl">Today's Evolution</span>
+        <span class="prog-val" id="el-prog">0 / 9</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="el-bar"></div></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-lbl">⚡ Morning</div>
+      <div class="task" data-xp="20" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">No phone for first 60 min</span><span class="txp">+20</span></div>
+      <div class="task" data-xp="30" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Cold shower or movement</span><span class="txp">+30</span></div>
+      <div class="task" data-xp="50" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Do your hardest task first</span><span class="txp">+50</span></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-lbl">🎯 Afternoon</div>
+      <div class="task" data-xp="35" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Deep work block (90 min)</span><span class="txp">+35</span></div>
+      <div class="task" data-xp="20" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Read or learn something new</span><span class="txp">+20</span></div>
+      <div class="task" data-xp="25" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Create something (write, build, make)</span><span class="txp">+25</span></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-lbl">🌙 Evening</div>
+      <div class="task" data-xp="40" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Physical training</span><span class="txp">+40</span></div>
+      <div class="task" data-xp="20" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">Reflect on the day (5 min)</span><span class="txp">+20</span></div>
+      <div class="task" data-xp="15" onclick="tap(this)"><div class="chk"><span class="tick">✓</span></div><span class="tn">No screens 1 hr before bed</span><span class="txp">+15</span></div>
+    </div>
+
+    <button class="rst" onclick="resetDay()">↺ reset day</button>
+  </div>
+
+  <!-- TIMER (flex layout needs its own display handling) -->
+  <div class="page" id="pg-timer" style="display:none; flex-direction:column; align-items:center; padding-top:26px;">
+    <div class="ring-box">
+      <svg class="ring-svg" viewBox="0 0 210 210">
+        <circle class="ring-bg" cx="105" cy="105" r="86"/>
+        <circle class="ring-p" id="el-ring" cx="105" cy="105" r="86"/>
+      </svg>
+      <div class="t-in">
+        <div class="t-num" id="el-tnum">25:00</div>
+        <div class="t-lbl" id="el-tlbl">Ready</div>
+      </div>
+    </div>
+    <div class="presets">
+      <button class="pset on" onclick="setP(this,25,'Pomodoro')">25m</button>
+      <button class="pset"    onclick="setP(this,52,'Ultradian')">52m</button>
+      <button class="pset"    onclick="setP(this,90,'Deep Flow')">90m</button>
+    </div>
+    <div class="t-btns">
+      <button class="btn-r" onclick="resetT()">↺</button>
+      <button class="btn-play" id="el-play" onclick="toggleT()">▶</button>
+      <button class="btn-r" onclick="skip5()" style="font-size:13px;font-weight:700">+5</button>
+    </div>
+    <div class="fstats">
+      <div class="fs"><div class="fs-v" id="el-sess">0</div><div class="fs-l">Sessions</div></div>
+      <div class="fs"><div class="fs-v" id="el-ftime">0h</div><div class="fs-l">Focus</div></div>
+      <div class="fs"><div class="fs-v" id="el-fxp">0</div><div class="fs-l">XP</div></div>
+    </div>
+  </div>
+
+  <!-- TRACKER -->
+  <div class="page" id="pg-tracker">
+    <div class="tgrid">
+      <div class="tc"><div class="tc-l">XP Earned</div><div class="tc-v" style="color:#00c2ff" id="el-trxp">0</div><div class="tc-s">today</div></div>
+      <div class="tc"><div class="tc-l">Tasks Done</div><div class="tc-v" style="color:#00e676" id="el-trtasks">0/9</div><div class="tc-s">completed</div></div>
+      <div class="tc"><div class="tc-l">Streak</div><div class="tc-v" style="color:#ff9500" id="el-trstreak">0🔥</div><div class="tc-s">days</div></div>
+      <div class="tc"><div class="tc-l">Focus Time</div><div class="tc-v" style="color:#a78bfa" id="el-trfocus">0h</div><div class="tc-s">today</div></div>
+    </div>
+    <div class="sec-t">This Week</div>
+    <div class="wk-row" id="el-week"></div>
+  </div>
+
+  <!-- PRINCIPLES -->
+  <div class="page" id="pg-principles">
+    <div id="el-plist"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- READER OVERLAY -->
+<div id="reader">
+  <div class="r-bar">
+    <button class="r-back" onclick="closeR()">← Back</button>
+    <div class="r-bar-title" id="el-rtitle"></div>
+    <div class="r-bar-count"><span id="el-rcur">1</span>/<span id="el-rtot">1</span></div>
+  </div>
+  <div class="r-dots" id="el-rdots"></div>
+  <div class="r-scroll" id="el-rscroll">
+    <div class="r-content" id="el-rbody"></div>
+  </div>
+  <div class="r-foot">
+    <button class="r-btn r-prev" id="el-rprev" onclick="rNav(-1)">← Prev</button>
+    <div class="r-pg-lbl" id="el-rlbl"></div>
+    <button class="r-btn r-next" id="el-rnext" onclick="rNav(1)">Next →</button>
+  </div>
+</div>
+
+<div id="tw"></div>
+
+<script>
+// ═══════════════════════════════
+//  STATE
+// ═══════════════════════════════
+const TOTAL = 9;
+let xp=0, done=0, streak=0, fMin=0, fSess=0, fXP=0;
+let week=[false,false,false,false,false,false,false];
+
+function save(){
+  const ts=[...document.querySelectorAll('.task')].map(t=>t.classList.contains('done'));
+  localStorage.setItem('me_t',JSON.stringify(ts));
+  localStorage.setItem('me_s',JSON.stringify({date:new Date().toDateString(),xp,done,streak,fMin,fSess,fXP,week}));
+}
+
+function load(){
+  try {
+    const s=JSON.parse(localStorage.getItem('me_s')||'{}');
+    const today=new Date().toDateString();
+    if(s.date && s.date!==today){
+      const diff=Math.round((new Date(today)-new Date(s.date))/86400000);
+      week=s.week||week;
+      week[new Date(s.date).getDay()]=(s.done||0)>=5;
+      streak=(diff===1&&(s.done||0)>=5)?(s.streak||0)+1:(diff>1?0:(s.streak||0));
+      xp=0;done=0;fMin=0;fSess=0;fXP=0;
+      localStorage.removeItem('me_t');
+    } else {
+      xp=s.xp||0; done=s.done||0; streak=s.streak||0;
+      fMin=s.fMin||0; fSess=s.fSess||0; fXP=s.fXP||0;
+      week=s.week||week;
+      const ts=JSON.parse(localStorage.getItem('me_t')||'[]');
+      document.querySelectorAll('.task').forEach((t,i)=>{ if(ts[i]) t.classList.add('done'); });
+    }
+  } catch(e){}
+  save();
+  upAll();
+}
+
+// ═══════════════════════════════
+//  TABS
+// ═══════════════════════════════
+function goTab(id, btn){
+  // hide all pages
+  document.querySelectorAll('.page').forEach(p=>{
+    p.style.display='none';
+    p.classList.remove('on');
+  });
+  // highlight tab
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  // show target
+  const pg=document.getElementById('pg-'+id);
+  if(id==='timer'){
+    pg.style.display='flex';
+  } else {
+    pg.style.display='block';
+  }
+  pg.classList.add('on');
+  if(id==='tracker') buildWeek();
+}
+
+// ═══════════════════════════════
+//  TASKS
+// ═══════════════════════════════
+function tap(el){
+  const wasDone=el.classList.contains('done');
+  const val=parseInt(el.dataset.xp);
+  if(wasDone){ el.classList.remove('done'); xp=Math.max(0,xp-val); done=Math.max(0,done-1); }
+  else { el.classList.add('done'); xp+=val; done++; toast('+'+val+' XP'); }
+  save(); upAll();
+}
+function resetDay(){
+  document.querySelectorAll('.task').forEach(t=>t.classList.remove('done'));
+  xp=0; done=0; localStorage.removeItem('me_t'); save(); upAll();
+}
+
+// ═══════════════════════════════
+//  TIMER
+// ═══════════════════════════════
+let tSec=25*60, tTot=25*60, tRun=false, tInt=null, tMode='Pomodoro';
+const CIRC=2*Math.PI*86;
+
+function setP(btn,min,mode){
+  document.querySelectorAll('.pset').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(tRun){ clearInterval(tInt); tRun=false; }
+  tSec=min*60; tTot=tSec; tMode=mode;
+  document.getElementById('el-play').textContent='▶';
+  document.getElementById('el-tlbl').textContent='Ready';
+  drawRing(); showTime();
+}
+function toggleT(){
+  if(tRun){
+    clearInterval(tInt); tRun=false;
+    document.getElementById('el-play').textContent='▶';
+    document.getElementById('el-tlbl').textContent='Paused';
+  } else {
+    tRun=true;
+    document.getElementById('el-play').textContent='⏸';
+    document.getElementById('el-tlbl').textContent=tMode+' running';
+    tInt=setInterval(()=>{ tSec--; if(tSec<=0) finishT(); else { showTime(); drawRing(); } },1000);
+  }
+}
+function resetT(){
+  clearInterval(tInt); tRun=false; tSec=tTot;
+  document.getElementById('el-play').textContent='▶';
+  document.getElementById('el-tlbl').textContent='Ready';
+  drawRing(); showTime();
+}
+function skip5(){ tSec=Math.max(0,tSec-300); drawRing(); showTime(); }
+function finishT(){
+  clearInterval(tInt); tRun=false;
+  const min=tTot/60, gained=Math.round(min);
+  fMin+=min; fSess++; fXP+=gained; xp+=gained;
+  tSec=tTot;
+  document.getElementById('el-play').textContent='▶';
+  document.getElementById('el-tlbl').textContent='✓ Done!';
+  drawRing(); showTime(); save(); upAll();
+  toast('🎯 '+tMode+' done! +'+gained+' XP');
+}
+function showTime(){
+  const m=Math.floor(tSec/60), s=tSec%60;
+  document.getElementById('el-tnum').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function drawRing(){
+  const ratio=1-tSec/tTot;
+  const r=document.getElementById('el-ring');
+  r.style.strokeDasharray=CIRC;
+  r.style.strokeDashoffset=CIRC*(1-ratio);
+  r.style.stroke=tSec<60?'#ff9500':'#0078ff';
+}
+
+// ═══════════════════════════════
+//  TRACKER
+// ═══════════════════════════════
+function buildWeek(){
+  const D=['S','M','T','W','T','F','S'];
+  const today=new Date().getDay();
+  document.getElementById('el-week').innerHTML=D.map((d,i)=>{
+    const isT=i===today;
+    const dotCls=isT?(done>=5?' great':done>0?' hit':''):(week[i]?' hit':'');
+    return '<div class="wd'+(isT?' today':'')+'"><div class="wd-n">'+d+'</div><div class="wd-dot'+dotCls+'"></div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════
+//  PRINCIPLES DATA
+// ═══════════════════════════════
+const P=[
+  {
+    icon:'🧠', name:'Dopamine Architecture', meta:'6 pages - Your brain reward system',
+    pages:[
+      {tag:'Intro · Page 1 of 6',title:'Your Brain Is <span>Being Hijacked</span>',
+       html:`<p class="r-text">Right now, without you realizing it, billions of dollars and the smartest engineers on earth are working 24/7 on one goal — to steal your dopamine. Every notification ping, every infinite scroll, every autoplay is <strong>precision-engineered to trigger your reward system</strong> before you've earned anything.</p>
+<div class="r-quote">"The smartphone is a slot machine in your pocket. Every pull of the feed is a gamble for a dopamine hit." <span>— Tristan Harris, former Google designer</span></div>
+<p class="r-text">This is not a willpower problem. It's a <em>dopamine problem</em>. Understanding it is the foundational skill of high performance in the modern world. Miss this, and every other system eventually collapses.</p>`},
+      {tag:'Science · Page 2 of 6',title:'What <span>Dopamine</span> Actually Does',
+       html:`<p class="r-text">Most people think dopamine = pleasure. That's wrong, and the misunderstanding is costing you enormously.</p>
+<p class="r-text"><strong>Dopamine is the chemical of anticipation, not satisfaction.</strong> It spikes before the reward — not during it. That's why you feel excitement scrolling but emptiness after.</p>
+<div class="r-stats"><div class="r-stat"><div class="r-stat-v">400%</div><div class="r-stat-l">dopamine spike from unexpected vs expected reward</div></div><div class="r-stat"><div class="r-stat-v">137×</div><div class="r-stat-l">average times people check phone per day</div></div></div>
+<p class="r-text">Your brain has a <strong>dopamine baseline</strong>. When cheap sources constantly spike it, your baseline recalibrates upward. Now hard work — which produces a modest dopamine response — feels like nothing. Boring. Pointless. Impossible to start. This is called <em>dopamine tolerance</em>.</p>`},
+      {tag:'Problem · Page 3 of 6',title:'The <span>Baseline Trap</span>',
+       html:`<p class="r-text">Imagine your dopamine system as a thermostat. Cheap dopamine cranks the heat. Your body responds by reducing receptor sensitivity. Now when you try to do meaningful work, the thermostat says: not warm enough.</p>
+<div class="r-box"><div class="r-box-t">Signs your baseline is wrecked</div><p>Restless during silence. Can't read for 5 min. Checking phone with no reason. Everything important feels "boring." Starting things and immediately losing interest. Anxious without stimulation.</p></div>
+<p class="r-text">Hard truth: <strong>your inability to focus isn't a personality trait. It's a biological consequence of constant cheap stimulation.</strong> The good news: it's completely reversible.</p>`},
+      {tag:'Fix · Page 4 of 6',title:'Resetting Your <span>Baseline</span>',
+       html:`<p class="r-text">The goal isn't to never enjoy things — it's to break the tolerance cycle.</p>
+<ul class="r-list"><li><strong>No phone for 60 min after waking.</strong> Your dopamine system is most sensitive in the morning. Flooding it immediately sets a destructive baseline for the whole day.</li><li><strong>Mono-task.</strong> Switching between tasks creates mini dopamine hits from novelty. Single-tasking feels boring at first — that's the reset working.</li><li><strong>Embrace boredom deliberately.</strong> Sit with nothing for 10 min daily. No phone, music, podcast. This is the hardest thing most people will ever do, and the most powerful.</li><li><strong>Space out pleasures.</strong> Don't stack coffee + music + interesting task. Let individual things be pleasurable on their own terms.</li></ul>`},
+      {tag:'Advanced · Page 5 of 6',title:'Dopamine <span>On Demand</span>',
+       html:`<p class="r-text">Once your baseline is healthy, you can attach dopamine to the effort itself — not just the outcome. This is how elite performers stay motivated through years of hard work with slow results.</p>
+<div class="r-quote">"I tell myself that the friction of hard work IS the reward. The discomfort is the signal I'm getting stronger." <span>— David Goggins</span></div>
+<ul class="r-list"><li>Celebrate the process (showing up, completing a session) not just results</li><li>Use completion as your dopamine — finish deep work before any reward</li><li>Attach a small ritual to starting hard work so your brain learns to anticipate focus</li><li>Never interrupt a hard task with a phone check — it trains your brain that work isn't where the reward is</li></ul>`},
+      {tag:'Protocol · Page 6 of 6',title:'The <span>30-Day</span> Reset',
+       html:`<div class="r-proto"><div class="r-proto-t">⚡ Week 1 — Awareness</div><p>Track every time you reach for your phone without reason. Don't stop yet. Just observe. Most people do this 50–80 times a day.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Week 2 — Removal</div><p>Delete social media apps from your phone. Not your account — just the apps. This alone reduces usage by 70% for most people.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Week 3 — Replacement</div><p>Every time you feel the urge to scroll, do 2 minutes of something hard instead. Write one sentence. Do pushups. Read one page. Rewire the reflex.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Week 4 — Architecture</div><p>Design your environment so the path of least resistance leads to your goals. Phone in another room. Books on your desk. Work first, always.</p></div>`}
+    ]
+  },
+  {
+    icon:'⚖️', name:'Law of Least Effort', meta:'5 pages · Design your environment for success',
+    pages:[
+      {tag:'The Law · Page 1 of 5',title:'Your Brain Is <span>Lazy by Design</span>',
+       html:`<p class="r-text">Your brain — 3 pounds, consuming 20% of your total body energy — is desperately trying to reduce that cost at every moment. This is why your brain will <strong>always choose the lowest-friction path</strong>. Not the right one. The easiest one.</p>
+<div class="r-quote">"We will always gravitate toward the option that requires the least amount of work." <span>— James Clear</span></div>
+<p class="r-text">The elite insight: <em>don't fight the law, weaponize it.</em> Make the right behavior the easy behavior, and your brain does it automatically — no motivation required.</p>`},
+      {tag:'Friction · Page 2 of 5',title:'The Power of <span>20 Seconds</span>',
+       html:`<p class="r-text">Adding just 20 seconds of friction to a bad habit reduces its frequency by up to 40%. Removing 20 seconds of friction from a good habit dramatically increases follow-through.</p>
+<div class="r-stats"><div class="r-stat"><div class="r-stat-v">40%</div><div class="r-stat-l">less bad habits from 20 sec added friction</div></div><div class="r-stat"><div class="r-stat-v">3×</div><div class="r-stat-l">more likely to exercise if gym bag is packed</div></div></div>
+<div class="r-box"><div class="r-box-t">Real Examples</div><p><strong>Add friction to bad habits:</strong> Log out of social media after each use. TV remote in a drawer. Junk food at back of high shelf.<br><br><strong>Remove friction from good habits:</strong> Sleep in gym clothes. Book on your pillow. Work document open when you shut down each night.</p></div>`},
+      {tag:'Environment · Page 3 of 5',title:'Design Your <span>Environment</span>',
+       html:`<p class="r-text">Your environment shapes behavior more than motivation, discipline, or personality. A study showed hospital cafeteria workers placed in a new layout ate 18% fewer calories — without any intention to diet. <strong>Environment changed. Behavior followed.</strong></p>
+<ul class="r-list"><li><strong>Visual cues trigger behavior.</strong> If you see your guitar you'll play it. If your phone is on your desk you'll check it. Design what you see.</li><li><strong>Context creates cues.</strong> Couch = rest. Desk = work. Working from bed blurs these and both suffer.</li><li><strong>Make the invisible visible.</strong> Want to drink more water? Put a glass on the counter. Want to meditate? Put your cushion in the middle of the floor.</li></ul>`},
+      {tag:'Stacking · Page 4 of 5',title:'<span>Habit Stacking</span>',
+       html:`<p class="r-text">Attach new habits to ones that already run automatically. Your current habits are superhighways. A new habit alone is a dirt road. Connect the dirt road to the superhighway and traffic flows naturally.</p>
+<div class="r-quote">"After I [CURRENT HABIT], I will [NEW HABIT]." <span>— The habit stacking formula</span></div>
+<ul class="r-list"><li>After I pour my morning coffee → I write 3 priorities for the day</li><li>After I sit at my desk → I open my main work file, not my email</li><li>After I get into bed → I read for 10 minutes before touching my phone</li><li>After I put on my shoes → I do 5 minutes of stretching</li></ul>`},
+      {tag:'Protocol · Page 5 of 5',title:'The <span>Environment Audit</span>',
+       html:`<p class="r-text">Every Sunday, 10 minutes. Ask for each goal:</p>
+<div class="r-proto"><div class="r-proto-t">⚡ The 5 Questions</div><p>1. What is the current path of least resistance — does it help or hurt?<br><br>2. What one physical change reduces friction to the good behavior?<br><br>3. What one physical change adds friction to the bad behavior?<br><br>4. What visual cue could remind me of this goal throughout the day?<br><br>5. What existing habit could I stack this onto?</p></div>
+<div class="r-warn"><b>Most important rule:</b> Never rely on willpower where an environment change could do the job. Design beats discipline. Every time.</div>`}
+    ]
+  },
+  {
+    icon:'🌊', name:'Flow State Formula', meta:'7 pages · Engineer peak performance on demand',
+    pages:[
+      {tag:'What Is Flow · Page 1 of 7',title:'The <span>Most Powerful</span> Human State',
+       html:`<p class="r-text">In 1975, psychologist Mihaly Csikszentmihalyi studied chess players, surgeons, climbers, and musicians to find what made certain experiences feel completely absorbing. They all described the same state.</p>
+<p class="r-text">He called it <strong>Flow</strong> — complete absorption in a challenging task where time distorts, self-consciousness disappears, and performance peaks dramatically.</p>
+<div class="r-quote">"In flow, the ego falls away. Time flies. Every action follows inevitably from the previous one." <span>— Mihaly Csikszentmihalyi</span></div>
+<p class="r-text">McKinsey researchers found executives in flow were <em>5× more productive</em> than those not in flow. Not 5% — <strong>500%.</strong> Flow can be engineered.</p>`},
+      {tag:'Neuroscience · Page 2 of 7',title:'Your Brain <span>On Flow</span>',
+       html:`<p class="r-text">Flow is a distinct neurological state involving a precise cocktail of neurochemicals flooding your brain simultaneously.</p>
+<ul class="r-list"><li><strong>Norepinephrine</strong> — sharpens focus. Signals this moment matters.</li><li><strong>Dopamine</strong> — drives motivation and pattern recognition.</li><li><strong>Anandamide</strong> — your brain's natural cannabis analog. Produces lateral thinking and creative leaps.</li><li><strong>Serotonin</strong> — generates deep wellbeing and confidence.</li><li><strong>Endorphins</strong> — mask discomfort, produce the runner's high feeling.</li></ul>
+<p class="r-text">Simultaneously your prefrontal cortex — seat of self-doubt and self-consciousness — <strong>goes partially offline</strong>. This is transient hypofrontality. Your inner critic cannot fire. That's why flow feels effortless and performance surges.</p>`},
+      {tag:'Challenge-Skill · Page 3 of 7',title:'The <span>4% Rule</span>',
+       html:`<p class="r-text">The most critical flow trigger is the challenge-to-skill ratio.</p>
+<div class="r-box"><div class="r-box-t">The Flow Channel</div><p>Too easy → <strong>boredom.</strong> Brain disengages.<br><br>Too hard → <strong>anxiety.</strong> Brain goes into threat mode.<br><br>Challenge ~<strong>4% above current ability</strong> → <strong>flow.</strong></p></div>
+<p class="r-text">This is where norepinephrine fires to signal "this matters and I can do it." Too easy: the signal doesn't fire. Too hard: threat chemistry takes over.</p>
+<p class="r-text"><strong>Feeling bored?</strong> Add constraints, increase speed, raise stakes. <strong>Feeling anxious?</strong> Break it into smaller pieces, lower today's bar.</p>`},
+      {tag:'Triggers · Page 4 of 7',title:'The <span>Flow Triggers</span>',
+       html:`<ul class="r-list"><li><strong>Complete concentration.</strong> Not "low distraction" — zero. Notifications off, phone in another room. Brain cannot enter flow while monitoring for interruptions.</li><li><strong>Clear goals.</strong> Before every session write: "In the next 90 minutes I will ___." Vague intention produces vague focus.</li><li><strong>Immediate feedback.</strong> Know in real-time if you're on track. Writers read back what they write. Coders run tests constantly.</li><li><strong>High consequence.</strong> Stakes create urgency. Urgency triggers norepinephrine. A real deadline or genuine passion raises stakes naturally.</li><li><strong>Deep embodiment.</strong> Physical engagement — standing, pacing, using your hands — activates more of the brain.</li></ul>`},
+      {tag:'Interruptions · Page 5 of 7',title:'Why Interruptions <span>Destroy Everything</span>',
+       html:`<p class="r-text">A landmark study by Gloria Mark at UC Irvine found that after an interruption, it takes an average of <strong>23 minutes and 15 seconds</strong> to fully return to deep cognitive engagement.</p>
+<div class="r-stats"><div class="r-stat"><div class="r-stat-v">23m</div><div class="r-stat-l">to fully recover from one interruption</div></div><div class="r-stat"><div class="r-stat-v">87</div><div class="r-stat-l">average interruptions per workday</div></div></div>
+<p class="r-text">If interrupted once per hour, you never enter flow. You spend all day task-switching — constantly recovering, never arriving.</p>
+<div class="r-warn"><b>The brutal math:</b> 5 interruptions × 23 min = 115 minutes of lost deep work per day. Nearly 2 hours destroyed by checking Slack "real quick." Every. Single. Day.</div>`},
+      {tag:'The Cycle · Page 6 of 7',title:'The <span>4 Stages</span> of Flow',
+       html:`<ul class="r-list"><li><strong>Stage 1 — Struggle.</strong> Brain is loading. Feels like resistance, friction, even dread. <em>Most people quit here, mistaking struggle for incompetence.</em> Don't. It's mandatory.</li><li><strong>Stage 2 — Release.</strong> Step back — take a walk, make coffee, switch to a simpler sub-task. Your pre-conscious mind processes what the conscious mind was fighting. Insight often arrives here.</li><li><strong>Stage 3 — Flow.</strong> Neurochemicals arrive. Time warps. Performance surges. Inner critic goes quiet. Protect this stage fiercely — any interruption sends you back to Stage 1.</li><li><strong>Stage 4 — Recovery.</strong> Flow is expensive. After 90 min your brain needs real rest. Walk, nap, simple activity — not switching tasks. This is when learning consolidates.</li></ul>`},
+      {tag:'Protocol · Page 7 of 7',title:'The <span>90-Min Flow</span> Protocol',
+       html:`<div class="r-proto"><div class="r-proto-t">⚡ Night Before</div><p>Write your ONE most important task for tomorrow. Primes your pre-conscious mind overnight.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Morning Setup (10 min before)</div><p>Phone in another room. Notifications completely off. One document open. Write: "In the next 90 minutes I will ___."</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ The Block</div><p>90 minutes of single-tasking. No checking anything. If stuck, write about why you're stuck instead of reaching for your phone.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Recovery</div><p>20–30 min walk or rest. No screens. A second 90-min block in the afternoon is possible. Three is rare. Depth over volume, always.</p></div>`}
+    ]
+  },
+  {
+    icon:'⏳', name:'Delayed Gratification', meta:'6 pages · The master skill of every top performer',
+    pages:[
+      {tag:'The Study · Page 1 of 6',title:'The <span>Marshmallow</span> That Changed Everything',
+       html:`<p class="r-text">In the late 1960s, Walter Mischel placed a marshmallow in front of a 4-year-old and said: "If you don't eat it before I come back, I'll give you two." Some kids ate it immediately. Others waited 15 minutes — covering their eyes, singing to themselves, doing anything to resist.</p>
+<div class="r-quote">"Children who could wait had better outcomes in every domain — academics, health, income — decades later." <span>— Walter Mischel</span></div>
+<p class="r-text">Mischel had discovered that <strong>the ability to delay gratification is one of the strongest predictors of life success ever identified</strong> — more predictive than IQ or family income.</p>`},
+      {tag:'Neuroscience · Page 2 of 6',title:'The <span>Brain Battle</span>',
+       html:`<p class="r-text">When you resist an immediate reward, you're running a competition between two brain systems.</p>
+<ul class="r-list"><li><strong>The limbic system</strong> (ancient, fast, emotional): "Take it now. Certainty beats uncertainty."</li><li><strong>The prefrontal cortex</strong> (slower, rational, future-oriented): "Wait. Two is better than one. Future-you matters."</li></ul>
+<div class="r-hl"><b>The compound effect:</b> Every time you choose the prefrontal cortex over the limbic system, you strengthen that neural pathway. The capacity for delayed gratification grows with use — like a muscle. Elite performers aren't born with stronger willpower. They've accumulated thousands of small decisions where they chose future reward over immediate comfort.</div>`},
+      {tag:'Modern Traps · Page 3 of 6',title:'Why The <span>Modern World</span> Makes It Harder',
+       html:`<p class="r-text">For 99% of human history, instant gratification wasn't available. If you wanted food, you hunted. Waiting was the default. Today, instant gratification is the default. This is <strong>evolutionarily unprecedented</strong> and our brains are not equipped for it.</p>
+<div class="r-stats"><div class="r-stat"><div class="r-stat-v">15s</div><div class="r-stat-l">average TikTok video length</div></div><div class="r-stat"><div class="r-stat-v">2h</div><div class="r-stat-l">avg daily social media use, age 18–25</div></div></div>
+<p class="r-text">Every time you pick up your phone out of boredom, you train your limbic system to win. Every time you don't, <strong>you bank a victory for your prefrontal cortex.</strong> These votes compound.</p>`},
+      {tag:'Techniques · Page 4 of 6',title:'How the <span>Waiting Kids</span> Did It',
+       html:`<ul class="r-list"><li><strong>They made the temptation abstract.</strong> Imagined the marshmallow was a cloud, not real. Distance (physical or mental) reduces the limbic pull.</li><li><strong>They distracted themselves.</strong> Sang songs, counted tiles, daydreamed. The trick: redirect attention entirely, don't fight the temptation directly.</li><li><strong>They changed the environment.</strong> Physically turned away from the marshmallow. Out of sight genuinely reduces temptation strength.</li><li><strong>They made a rule.</strong> Pre-committing removes the in-the-moment decision. The decision is already made — no willpower needed at the moment of temptation.</li></ul>
+<p class="r-text">The kids who failed tried to white-knuckle it — staring at the marshmallow, resisting by force. <em>Willpower as combat almost always loses.</em></p>`},
+      {tag:'Application · Page 5 of 6',title:'<span>Earning</span> Your Rewards',
+       html:`<p class="r-text">The most powerful reframe: <strong>nothing good is free.</strong> Every reward without effort trains your brain to expect reward without effort. That destroys motivation, focus, and resilience.</p>
+<div class="r-quote">"You have to earn the right to feel good. That feeling of having earned it — that's what real satisfaction is made of."</div>
+<ul class="r-list"><li>Coffee after 60 min of work, not before</li><li>Entertainment after your creative output is done</li><li>Social media only after exercise or deep work</li><li>Your phone only after you've given your best thinking to important problems</li></ul>
+<p class="r-text">This isn't punishment — it's <em>sequencing.</em> The pleasures are the same. The order changes your brain.</p>`},
+      {tag:'Protocol · Page 6 of 6',title:'The <span>Earn-First</span> Protocol',
+       html:`<div class="r-proto"><div class="r-proto-t">⚡ Morning Non-Negotiables</div><p>No social media, no news, no entertainment until 10am minimum. Coffee only after starting your first task.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ The If-Then Pre-Commitment</div><p>Write tonight: "If I feel the urge to scroll tomorrow morning, then I will open my work document instead." Research shows if-then plans double follow-through rates.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Track Your Delays</div><p>Every time you feel the impulse to take the easy path and choose the hard one instead, make a mark. These marks are votes for the person you're becoming.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Weekly Review</div><p>List 3 times you chose instant gratification this week. Design a specific countermeasure for next week. Awareness precedes change.</p></div>`}
+    ]
+  },
+  {
+    icon:'🔄', name:'Law of Reverse Effect', meta:'5 pages · Why trying harder makes it worse',
+    pages:[
+      {tag:'The Paradox · Page 1 of 5',title:'Why <span>Trying Harder</span> Makes It Worse',
+       html:`<p class="r-text">The harder you try to sleep, the more awake you feel. The harder you try to remember a word, the more it hides. The more you strain to be creative, the blanker the page gets.</p>
+<p class="r-text">This is a fundamental law of human neurology: <strong>when the conscious will and the imagination are in conflict, the imagination wins every time.</strong></p>
+<div class="r-quote">"The harder you try to do something, the less likely you are to succeed. The tighter you grip, the less control you have." <span>— Timothy Gallwey</span></div>
+<p class="r-text">This doesn't mean "don't try." It means understanding what kind of trying produces what result — and when to switch modes.</p>`},
+      {tag:'Neuroscience · Page 2 of 5',title:'The <span>Amygdala Hijack</span>',
+       html:`<p class="r-text">When you try too hard — when anxiety or desperation enters — your amygdala activates. It floods your body with cortisol and adrenaline. In a cognitive task, these cause:</p>
+<ul class="r-list"><li><strong>Narrowed thinking</strong> — brain focuses on the threat (failing), not the solution</li><li><strong>Working memory impairment</strong> — literally reduces ability to hold and process information</li><li><strong>Loss of creative access</strong> — brain prioritizes survival circuits over associative thinking</li><li><strong>Self-monitoring overdrive</strong> — watching yourself perform rather than just performing</li></ul>
+<div class="r-box"><div class="r-box-t">The Performance Paradox</div><p>The state that produces peak performance (relaxed, present, low self-monitoring) is the exact opposite of what most people adopt when they want to perform well (tense, desperate, highly self-critical). Trying harder produces the conditions that make trying harder futile.</p></div>`},
+      {tag:'Where It Appears · Page 3 of 5',title:'<span>Everywhere</span> You Look',
+       html:`<ul class="r-list"><li><strong>Sleep:</strong> Trying to force sleep activates the arousal system. Insomnia is partly caused by anxiety about not sleeping — the effort creates the problem.</li><li><strong>Creativity:</strong> Writers who "try" to write brilliantly produce garbage. Writers who just write and trust the process produce breakthroughs.</li><li><strong>Sports:</strong> Athletes who "try" to make a crucial shot choke. Athletes in flow just do it — the conscious mind isn't involved in the execution.</li><li><strong>Socializing:</strong> Trying to be funny is the fastest way to not be funny. Trying to impress is the fastest way to seem unimpressive.</li><li><strong>Memory:</strong> The harder you try to recall something, the more elusive it becomes. Relax, think about something else, and it surfaces.</li><li><strong>Problem-solving:</strong> Breakthroughs almost never happen while staring at the problem. They happen in the shower, on a walk, in the moment of release.</li></ul>`},
+      {tag:'The Fix · Page 4 of 5',title:'Relax Your Grip, <span>Raise Your Output</span>',
+       html:`<p class="r-text">The solution is not to care less. It's to <strong>shift from desperate trying to committed releasing.</strong> You care deeply but hold lightly. Do the work but let go of controlling the outcome.</p>
+<div class="r-quote">"Care about the process. Be completely indifferent to the result." <span>— Naval Ravikant</span></div>
+<ul class="r-list"><li><strong>When stuck, walk away deliberately.</strong> Not as failure — as strategy. 20 minutes. Your default mode network keeps working on the problem in the background.</li><li><strong>Lower the stakes mentally.</strong> "This is just a draft." "I'm just exploring." Permission to be bad reduces the amygdala's threat response immediately.</li><li><strong>Shift focus to process.</strong> Instead of "I need to write something great," try "I will write for 45 minutes." The process is controllable. The outcome is not.</li></ul>`},
+      {tag:'Protocol · Page 5 of 5',title:'The <span>Release & Return</span> Method',
+       html:`<div class="r-proto"><div class="r-proto-t">⚡ The 20-Minute Release Rule</div><p>When stuck for more than 20 consecutive minutes, stop completely. Physical activity is best (walk, stretch). Don't return to the problem while officially "on a break."</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Lower-Your-Stakes Mantra</div><p>Before starting a creative or high-pressure task, say: "This is just exploration. There's no right answer yet. I'm allowed to be bad at this right now." This pre-disarms the amygdala.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Process Focus Reframe</div><p>Write your session goal as a process: "Write for 45 minutes" not "write a great chapter." "Think about this problem for 30 minutes" not "solve the problem." Excellence emerges when you stop white-knuckling for it.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Sleep Protocol</div><p>If you struggle to sleep, try paradoxical intention: actively try to stay awake. Lie with eyes open, genuinely trying not to sleep. This removes the performance pressure that causes insomnia.</p></div>`}
+    ]
+  },
+  {
+    icon:'🧬', name:'Identity-Based Growth', meta:'7 pages · Become before you achieve',
+    pages:[
+      {tag:'The Problem · Page 1 of 7',title:'Why <span>Goal-Setting</span> Usually Fails',
+       html:`<p class="r-text">Every year, 80% of New Year's resolutions fail by February. This isn't a motivation problem. It isn't a planning problem. It's a <strong>fundamentally flawed model of how human behavior changes.</strong></p>
+<p class="r-text">Outcome-based goals describe a destination but say nothing about who you need to become to get there. When you achieve a goal, what happens? The behavior evaporates — because the goal was the finish line, not a new identity.</p>
+<div class="r-quote">"The goal is not to run a marathon. The goal is to become a runner. Then running a marathon is just what runners do." <span>— James Clear</span></div>`},
+      {tag:'The Shift · Page 2 of 7',title:'The <span>Two Words</span> That Change Everything',
+       html:`<p class="r-text">The most powerful words in English for behavior change: <strong>"I am."</strong></p>
+<div class="r-box"><div class="r-box-t">Goal vs Identity</div><p>"I'm trying to quit smoking" → <strong>I am a non-smoker.</strong><br><br>"I want to work out more" → <strong>I am someone who exercises.</strong><br><br>"I'm trying to read more" → <strong>I am a reader.</strong><br><br>"I want to eat healthier" → <strong>I am someone who fuels their body well.</strong></p></div>
+<p class="r-text">"I'm trying to" signals temporary effort. "I am" signals a permanent state. When someone offers a smoker a cigarette and they say "I'm not a smoker," <em>the decision is already made.</em> Nothing to fight.</p>`},
+      {tag:'The Votes · Page 3 of 7',title:'Every Action Is a <span>Vote</span>',
+       html:`<p class="r-text">Your identity is a running total of evidence. Every action is either a vote for or against the person you claim to be. You don't need to be perfect — you need to win the majority of votes.</p>
+<ul class="r-list"><li>You write one page → vote for "I am a writer"</li><li>You skip a workout → vote against "I am someone who exercises"</li><li>You check your phone first thing → vote against "I am disciplined"</li><li>You sit down to work without being asked → vote for "I am a self-starter"</li></ul>
+<div class="r-quote">"The most practical way to change who you are is to change what you do." <span>— James Clear</span></div>
+<p class="r-text">Enough votes, and your brain updates the identity file. <strong>Then the behavior becomes effortless — it's just what you do.</strong></p>`},
+      {tag:'Neuroscience · Page 4 of 7',title:'How the <span>Brain Builds</span> Identity',
+       html:`<p class="r-text">Identity is constructed by two brain structures:</p>
+<ul class="r-list"><li><strong>The prefrontal cortex</strong> builds a narrative of who you are based on behavioral evidence. It's a storyteller, integrating memories and actions into a coherent "self" concept.</li><li><strong>The limbic system</strong> emotionally tags identity-consistent actions as rewarding and identity-inconsistent actions as threatening.</li></ul>
+<p class="r-text">Once an identity is established, <em>acting against it produces genuine psychological discomfort</em> — not just guilt, but a neurological alarm signal.</p>
+<div class="r-box"><div class="r-box-t">Why old identities are sticky</div><p>The brain treats established identities as facts. Challenging them feels like a threat to reality. This is why "I'm not a morning person" is so hard to dislodge — it's an identity statement the brain is actively defending.</p></div>`},
+      {tag:'Shedding · Page 5 of 7',title:'Breaking <span>Limiting Labels</span>',
+       html:`<ul class="r-list"><li><strong>"I'm not a morning person"</strong> → I've built habits that make mornings hard and haven't built ones that make them good</li><li><strong>"I'm just lazy"</strong> → I haven't found work that engages me at the right challenge level, or my dopamine system is dysregulated</li><li><strong>"I'm bad with money"</strong> → I haven't developed the specific skills and systems for money management</li><li><strong>"I'm not creative"</strong> → I haven't practiced creativity enough to feel fluent in it</li></ul>
+<p class="r-text">Notice the pattern: <strong>every limiting identity is a behavior disguised as a character trait.</strong> Behaviors can be changed. Traits feel permanent. The reframing is the first move.</p>
+<div class="r-quote">"You are not your history. <span>You are your potential.</span>"</div>`},
+      {tag:'Building · Page 6 of 7',title:'The <span>3-Step</span> Identity Construction',
+       html:`<ul class="r-list"><li><strong>Step 1 — Decide who you want to be.</strong> Write in present tense: "I am someone who does 2 hours of deep work every morning before checking messages." Behavioral and specific — not "I am successful."</li><li><strong>Step 2 — Prove it with small wins.</strong> Find the smallest possible action consistent with this identity and do it daily. A writer who writes one sentence is still a writer. Consistency of direction matters — not magnitude of action.</li><li><strong>Step 3 — Never miss twice.</strong> You will miss days. Missing once is an accident. Missing twice is starting a new bad habit. Return immediately, no matter how small.</li></ul>
+<div class="r-hl"><b>Identity doesn't require perfection.</b> It requires consistency of direction. Always voting for the same person, most of the time.</div>`},
+      {tag:'Protocol · Page 7 of 7',title:'Write Your <span>Identity Statement</span>',
+       html:`<div class="r-proto"><div class="r-proto-t">⚡ The Identity Statement</div><p>Complete: "I am someone who ___." Present tense. Behavioral. Specific enough to generate a daily action. Read every morning — this primes your brain's confirmation bias to work for you.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ The Decision Filter</div><p>Before any decision relating to your identity, ask: "What would this person do right now?" Not "what do I feel like doing." The identity answers first. Feelings follow.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ The Voting Log</div><p>Each evening, note 3 votes you cast for your identity and 1 vote against. Goal isn't zero against-votes — it's a clear majority. Watch the ratio shift over weeks.</p></div>
+<div class="r-proto"><div class="r-proto-t">⚡ Never-Miss-Twice Rule</div><p>When you miss a day, the next day's action is sacred. It must happen, no matter how small. One push-up counts. One sentence counts. The return vote is the most important one you'll cast.</p></div>`}
+    ]
+  }
+];
+
+// ═══════════════════════════════
+//  PRINCIPLES LIST
+// ═══════════════════════════════
+function buildList(){
+  document.getElementById('el-plist').innerHTML=P.map((p,i)=>
+    '<div class="p-card" onclick="openR('+i+')">'
+    +'<div class="p-ico">'+p.icon+'</div>'
+    +'<div class="p-info"><div class="p-name">'+p.name+'</div><div class="p-meta">'+p.meta+'</div></div>'
+    +'<div class="p-arr">›</div>'
+    +'</div>'
+  ).join('');
+}
+
+// ═══════════════════════════════
+//  READER
+// ═══════════════════════════════
+let rI=0, rP=0;
+
+function openR(i){
+  rI=i; rP=0;
+  document.getElementById('reader').classList.add('open');
+  renderR();
+}
+function closeR(){
+  document.getElementById('reader').classList.remove('open');
+}
+function renderR(){
+  const prin=P[rI];
+  const pg=prin.pages[rP];
+  const tot=prin.pages.length;
+  document.getElementById('el-rtitle').textContent=prin.icon+' '+prin.name;
+  document.getElementById('el-rcur').textContent=rP+1;
+  document.getElementById('el-rtot').textContent=tot;
+  document.getElementById('el-rlbl').textContent='Page '+(rP+1)+' of '+tot;
+  document.getElementById('el-rbody').innerHTML='<div class="r-tag">'+pg.tag+'</div><div class="r-title">'+pg.title+'</div>'+pg.html;
+  document.getElementById('el-rscroll').scrollTop=0;
+  // dots
+  document.getElementById('el-rdots').innerHTML=prin.pages.map(function(_,i){
+    return '<div class="rdot'+(i===rP?' on':'')+'" style="width:'+(i===rP?'18px':'7px')+'" onclick="goPg('+i+')"></div>';
+  }).join('');
+  // prev
+  var prev=document.getElementById('el-rprev');
+  prev.style.opacity=rP===0?'0.3':'1';
+  prev.style.pointerEvents=rP===0?'none':'auto';
+  // next
+  var next=document.getElementById('el-rnext');
+  if(rP===tot-1){ next.textContent='✓ Done'; next.style.background='#00e676'; next.style.color='#07070f'; }
+  else { next.textContent='Next →'; next.style.background='#0078ff'; next.style.color='#fff'; }
+}
+function rNav(d){
+  var tot=P[rI].pages.length;
+  if(d===1 && rP===tot-1){ closeR(); return; }
+  rP=Math.max(0,Math.min(tot-1,rP+d));
+  renderR();
+}
+function goPg(i){ rP=i; renderR(); }
+
+// ═══════════════════════════════
+//  UPDATE ALL
+// ═══════════════════════════════
+function upAll(){
+  document.getElementById('el-streak').textContent=streak;
+  document.getElementById('el-xp').textContent=xp;
+  var pct=Math.round(done/TOTAL*100);
+  document.getElementById('el-bar').style.width=pct+'%';
+  document.getElementById('el-prog').textContent=done+' / '+TOTAL;
+  document.getElementById('el-sess').textContent=fSess;
+  document.getElementById('el-ftime').textContent=(fMin/60).toFixed(1)+'h';
+  document.getElementById('el-fxp').textContent=fXP;
+  document.getElementById('el-trxp').textContent=xp;
+  document.getElementById('el-trtasks').textContent=done+'/'+TOTAL;
+  document.getElementById('el-trstreak').textContent=streak+'🔥';
+  document.getElementById('el-trfocus').textContent=(fMin/60).toFixed(1)+'h';
+}
+
+// ═══════════════════════════════
+//  TOAST
+// ═══════════════════════════════
+function toast(msg){
+  var el=document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  document.getElementById('tw').appendChild(el);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('show'); }); });
+  setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); },250); },2000);
+}
+
+// ═══════════════════════════════
+//  INIT
+// ═══════════════════════════════
+showTime(); drawRing(); buildList(); load();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body>
+</html>
