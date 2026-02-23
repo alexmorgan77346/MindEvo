@@ -1,4 +1,4 @@
-const CACHE = 'mindevo-v3';
+const CACHE = 'mindevo-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
         return res;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });
